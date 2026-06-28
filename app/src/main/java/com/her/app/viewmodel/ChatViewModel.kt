@@ -3,6 +3,7 @@ package com.her.app.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.her.app.data.AzureAIRepository
+import com.her.app.data.FirestoreRepository
 import com.her.app.data.Message
 import com.her.app.data.Personality
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,6 +15,7 @@ import java.util.UUID
 class ChatViewModel : ViewModel() {
 
     private val repository = AzureAIRepository()
+    private val firestoreRepo = FirestoreRepository()
 
     private val _currentPersonality = MutableStateFlow<Personality?>(null)
     val currentPersonality: StateFlow<Personality?> = _currentPersonality.asStateFlow()
@@ -32,8 +34,18 @@ class ChatViewModel : ViewModel() {
             _currentPersonality.value = personality
             _messages.value = emptyList()
             _errorMessage.value = null
-            // Send a greeting trigger so the AI opens the conversation
-            sendGreeting(personality)
+            viewModelScope.launch {
+                val history = try {
+                    firestoreRepo.loadMessages(personality.id)
+                } catch (e: Exception) {
+                    emptyList()
+                }
+                if (history.isNotEmpty()) {
+                    _messages.value = history
+                } else {
+                    sendGreeting(personality)
+                }
+            }
         }
     }
 
@@ -47,14 +59,20 @@ class ChatViewModel : ViewModel() {
             )
             val result = repository.sendMessage(personality, listOf(triggerMessage))
             result.onSuccess { reply ->
-                _messages.value = listOf(
-                    Message(
-                        id = UUID.randomUUID().toString(),
-                        content = reply,
-                        isFromUser = false
-                    )
+                val aiMessage = Message(
+                    id = UUID.randomUUID().toString(),
+                    content = reply,
+                    isFromUser = false
                 )
-            }.onFailure { error ->
+                _messages.value = listOf(aiMessage)
+                viewModelScope.launch {
+                    try {
+                        firestoreRepo.saveMessage(personality.id, aiMessage)
+                    } catch (e: Exception) {
+                        // fire-and-forget; don't block UI on Firestore errors
+                    }
+                }
+            }.onFailure {
                 _errorMessage.value = "Couldn't connect right now. Check your API key and try again."
             }
             _isLoading.value = false
@@ -80,12 +98,22 @@ class ChatViewModel : ViewModel() {
 
             val result = repository.sendMessage(personality, updatedMessages)
             result.onSuccess { reply ->
-                _messages.value = _messages.value + Message(
+                val aiMessage = Message(
                     id = UUID.randomUUID().toString(),
                     content = reply,
                     isFromUser = false
                 )
-            }.onFailure { error ->
+                _messages.value = _messages.value + aiMessage
+                // Persist both the user message and AI reply to Firestore
+                viewModelScope.launch {
+                    try {
+                        firestoreRepo.saveMessage(personality.id, userMessage)
+                        firestoreRepo.saveMessage(personality.id, aiMessage)
+                    } catch (e: Exception) {
+                        // fire-and-forget; don't block UI on Firestore errors
+                    }
+                }
+            }.onFailure {
                 _errorMessage.value = "Message failed. Please try again."
             }
 

@@ -10,4 +10,5 @@
     <string name="pick_personality">Choose who you want to talk to</string>
     <string name="switch_personality">Switch</string>
     <string name="traits_label">Vibes</string>
+    <string name="default_web_client_id">YOUR_WEB_CLIENT_ID</string>
 </resources>
