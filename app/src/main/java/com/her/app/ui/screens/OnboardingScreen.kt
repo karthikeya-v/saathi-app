@@ -25,8 +25,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -57,6 +60,14 @@ import com.her.app.ui.theme.TextMuted
 import com.her.app.ui.theme.TextSecondary
 import com.her.app.viewmodel.OnboardingViewModel
 
+private val quizQuestions = listOf(
+    "I prefer large social gatherings over quiet evenings alone.",
+    "I often think in abstract ideas rather than concrete facts.",
+    "I make decisions with my head more than my heart.",
+    "I prefer having a clear plan over keeping options open.",
+    "I rarely second-guess myself after making a decision."
+)
+
 @Composable
 fun OnboardingScreen(viewModel: OnboardingViewModel) {
     val step by viewModel.currentStep.collectAsState()
@@ -64,7 +75,7 @@ fun OnboardingScreen(viewModel: OnboardingViewModel) {
     val age by viewModel.age.collectAsState()
     val gender by viewModel.gender.collectAsState()
     val interestedIn by viewModel.interestedIn.collectAsState()
-    val vibe by viewModel.vibe.collectAsState()
+    val quizAnswers by viewModel.quizAnswers.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
     val error by viewModel.error.collectAsState()
 
@@ -73,7 +84,7 @@ fun OnboardingScreen(viewModel: OnboardingViewModel) {
         1 -> true
         2 -> gender.isNotBlank()
         3 -> interestedIn.isNotBlank()
-        4 -> vibe.isNotBlank()
+        4 -> true // quiz always has defaults
         else -> false
     }
 
@@ -89,12 +100,10 @@ fun OnboardingScreen(viewModel: OnboardingViewModel) {
                 .fillMaxSize()
                 .padding(horizontal = 28.dp)
         ) {
-            // Progress bar
             Spacer(modifier = Modifier.height(16.dp))
             ProgressBar(step = step, total = 5)
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Back button (hidden on step 0)
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 if (step > 0) {
                     IconButton(onClick = { viewModel.back() }) {
@@ -107,7 +116,6 @@ fun OnboardingScreen(viewModel: OnboardingViewModel) {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Step content with animation
             AnimatedContent(
                 targetState = step,
                 transitionSpec = {
@@ -127,38 +135,31 @@ fun OnboardingScreen(viewModel: OnboardingViewModel) {
                         0 -> NameStep(name = name, onNameChange = viewModel::setName)
                         1 -> AgeStep(age = age, onAgeChange = viewModel::setAge)
                         2 -> ChoiceStep(
+                            stepLabel = "Step 3 of 5",
                             question = "How do you identify?",
                             options = listOf("Man", "Woman", "Other"),
                             selected = gender,
                             onSelect = viewModel::setGender
                         )
                         3 -> ChoiceStep(
+                            stepLabel = "Step 4 of 5",
                             question = "Who are you open to connecting with?",
                             options = listOf("Men", "Women", "Everyone"),
                             selected = interestedIn,
                             onSelect = viewModel::setInterestedIn
                         )
-                        4 -> ChoiceStep(
-                            question = "What brings you here?",
-                            options = listOf(
-                                "Explore connection",
-                                "Practice vulnerability",
-                                "Find what I want",
-                                "Just curious"
-                            ),
-                            selected = vibe,
-                            onSelect = viewModel::setVibe
+                        4 -> QuizStep(
+                            answers = quizAnswers,
+                            onAnswerChange = viewModel::setQuizAnswer
                         )
                     }
                 }
             }
 
-            // Error
             error?.let {
                 Text(it, color = Color(0xFFEF4444), fontSize = 13.sp, modifier = Modifier.padding(bottom = 8.dp))
             }
 
-            // Continue button
             Button(
                 onClick = { viewModel.next() },
                 enabled = canContinue && !isSaving,
@@ -176,7 +177,7 @@ fun OnboardingScreen(viewModel: OnboardingViewModel) {
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 } else {
                     Text(
-                        if (step == 4) "Let's go →" else "Continue",
+                        if (step == 4) "Find my matches →" else "Continue",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = Color.White
@@ -270,12 +271,7 @@ private fun AgeStep(age: Int, onAgeChange: (Int) -> Unit) {
                 Text("−", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.width(32.dp))
-            Text(
-                text = "$age",
-                fontSize = 56.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
+            Text(text = "$age", fontSize = 56.sp, fontWeight = FontWeight.Bold, color = Color.White)
             Spacer(modifier = Modifier.width(32.dp))
             Box(
                 modifier = Modifier
@@ -296,24 +292,16 @@ private fun AgeStep(age: Int, onAgeChange: (Int) -> Unit) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ChoiceStep(
+    stepLabel: String,
     question: String,
     options: List<String>,
     selected: String,
     onSelect: (String) -> Unit
 ) {
     Column {
-        val stepNum = when {
-            options.size == 3 && options.contains("Man") -> 3
-            options.size == 3 && options.contains("Men") -> 4
-            else -> 5
-        }
-        StepLabel("Step $stepNum of 5")
+        StepLabel(stepLabel)
         Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            question,
-            fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White,
-            lineHeight = 36.sp
-        )
+        Text(question, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White, lineHeight = 36.sp)
         Spacer(modifier = Modifier.height(40.dp))
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -324,11 +312,7 @@ private fun ChoiceStep(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(16.dp))
-                        .border(
-                            width = 1.5.dp,
-                            color = if (isSelected) Saffron else DarkBorder,
-                            shape = RoundedCornerShape(16.dp)
-                        )
+                        .border(1.5.dp, if (isSelected) Saffron else DarkBorder, RoundedCornerShape(16.dp))
                         .background(if (isSelected) Saffron else Color.Transparent)
                         .clickable { onSelect(option) }
                         .padding(horizontal = 24.dp, vertical = 14.dp),
@@ -342,6 +326,74 @@ private fun ChoiceStep(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun QuizStep(
+    answers: List<Int>,
+    onAnswerChange: (Int, Int) -> Unit
+) {
+    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+        StepLabel("Step 5 of 5")
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            "Quick personality quiz",
+            fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color.White, lineHeight = 34.sp
+        )
+        Text(
+            "Tap where you fall on each scale",
+            fontSize = 13.sp, color = TextMuted, modifier = Modifier.padding(top = 6.dp)
+        )
+        Spacer(modifier = Modifier.height(28.dp))
+
+        quizQuestions.forEachIndexed { index, question ->
+            QuizQuestion(
+                question = question,
+                answer = answers.getOrElse(index) { 4 },
+                onAnswerChange = { onAnswerChange(index, it) }
+            )
+            Spacer(modifier = Modifier.height(28.dp))
+        }
+    }
+}
+
+@Composable
+private fun QuizQuestion(
+    question: String,
+    answer: Int,
+    onAnswerChange: (Int) -> Unit
+) {
+    Column {
+        Text(question, color = Color.White, fontSize = 14.sp, lineHeight = 20.sp)
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Disagree", color = TextMuted, fontSize = 11.sp)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                for (i in 1..7) {
+                    val isSelected = answer == i
+                    val dotSize = if (i == 1 || i == 7) 14.dp else if (i == 4) 10.dp else 12.dp
+                    Box(
+                        modifier = Modifier
+                            .size(dotSize)
+                            .clip(CircleShape)
+                            .background(
+                                when {
+                                    isSelected -> Saffron
+                                    i == 4 -> DarkBorder
+                                    else -> Color.White.copy(alpha = 0.15f)
+                                }
+                            )
+                            .clickable { onAnswerChange(i) }
+                    )
+                }
+            }
+            Text("Agree", color = TextMuted, fontSize = 11.sp)
         }
     }
 }

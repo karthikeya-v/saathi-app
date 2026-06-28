@@ -5,5 +5,5 @@ data class UserProfile(
     val age: Int = 0,
     val gender: String = "",        // "Man", "Woman", "Other"
     val interestedIn: String = "",  // "Men", "Women", "Everyone"
-    val vibe: String = ""           // "Explore connection", "Practice vulnerability", "Find what I want", "Just curious"
+    val mbtiType: String = ""       // e.g. "INFJ-T", "ENTP-A"
 )

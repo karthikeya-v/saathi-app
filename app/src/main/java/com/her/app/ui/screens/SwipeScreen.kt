@@ -63,7 +63,6 @@ import com.her.app.ui.theme.DarkBorder
 import com.her.app.ui.theme.Saffron
 import com.her.app.ui.theme.TextMuted
 import kotlinx.coroutines.launch
-import kotlin.math.abs
 import kotlin.math.roundToInt
 
 @Composable
@@ -87,8 +86,7 @@ fun SwipeScreen(
             .navigationBarsPadding()
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Top bar
-            SwipeTopBar(userName = userProfile.name)
+            SwipeTopBar(userName = userProfile.name, userMbti = userProfile.mbtiType)
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -102,7 +100,6 @@ fun SwipeScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             if (isEmpty) {
-                // Empty state
                 Box(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                     contentAlignment = Alignment.Center
@@ -124,30 +121,18 @@ fun SwipeScreen(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(Saffron)
-                                .then(
-                                    Modifier.padding(horizontal = 24.dp, vertical = 14.dp)
-                                ),
+                                .padding(horizontal = 24.dp, vertical = 14.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    "See all personalities",
-                                    color = Color.White,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 14.sp,
-                                    modifier = Modifier
-                                        .then(
-                                            Modifier
-                                        )
-                                )
+                                Text("See all personalities", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                             }
                         }
                     }
                 }
             } else {
-                // Card stack
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -155,7 +140,7 @@ fun SwipeScreen(
                         .padding(horizontal = 20.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Background cards (stacked behind)
+                    // Background stacked cards
                     deck.reversed().forEachIndexed { reversedIndex, personality ->
                         val index = deck.size - 1 - reversedIndex
                         if (index < deck.size - 1) {
@@ -179,10 +164,11 @@ fun SwipeScreen(
                         }
                     }
 
-                    // Top card (swipeable)
+                    // Top swipeable card
                     deck.lastOrNull()?.let { topCard ->
                         SwipeCard(
                             personality = topCard,
+                            userMbti = userProfile.mbtiType,
                             onSwipeRight = {
                                 deck.removeLastOrNull()
                                 onPersonalitySelected(topCard)
@@ -196,7 +182,6 @@ fun SwipeScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Action buttons
                 deck.lastOrNull()?.let { topCard ->
                     Row(
                         modifier = Modifier
@@ -205,21 +190,9 @@ fun SwipeScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Pass button
-                        ActionButton(
-                            onClick = { deck.removeLastOrNull() },
-                            color = Color(0xFF2A2A35),
-                            size = 64.dp
-                        ) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = "Pass",
-                                tint = Color.White,
-                                modifier = Modifier.size(28.dp)
-                            )
+                        ActionButton(onClick = { deck.removeLastOrNull() }, color = Color(0xFF2A2A35), size = 64.dp) {
+                            Icon(Icons.Default.Close, contentDescription = "Pass", tint = Color.White, modifier = Modifier.size(28.dp))
                         }
-
-                        // Like button
                         ActionButton(
                             onClick = {
                                 deck.removeLastOrNull()
@@ -228,12 +201,7 @@ fun SwipeScreen(
                             color = Saffron,
                             size = 72.dp
                         ) {
-                            Icon(
-                                Icons.Default.Favorite,
-                                contentDescription = "Chat",
-                                tint = Color.White,
-                                modifier = Modifier.size(32.dp)
-                            )
+                            Icon(Icons.Default.Favorite, contentDescription = "Chat", tint = Color.White, modifier = Modifier.size(32.dp))
                         }
                     }
                 }
@@ -247,6 +215,7 @@ fun SwipeScreen(
 @Composable
 private fun SwipeCard(
     personality: Personality,
+    userMbti: String,
     onSwipeRight: () -> Unit,
     onSwipeLeft: () -> Unit
 ) {
@@ -292,16 +261,10 @@ private fun SwipeCard(
                                 }
                                 else -> {
                                     launch {
-                                        animX.animateTo(
-                                            0f,
-                                            spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
-                                        )
+                                        animX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow))
                                     }
                                     launch {
-                                        animY.animateTo(
-                                            0f,
-                                            spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
-                                        )
+                                        animY.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow))
                                     }
                                 }
                             }
@@ -316,10 +279,8 @@ private fun SwipeCard(
                 }
             }
     ) {
-        // Card content
-        CardContent(personality = personality)
+        CardContent(personality = personality, userMbti = userMbti)
 
-        // LIKE label
         if (likeAlpha > 0f) {
             Box(
                 modifier = Modifier
@@ -333,7 +294,6 @@ private fun SwipeCard(
             }
         }
 
-        // PASS label
         if (passAlpha > 0f) {
             Box(
                 modifier = Modifier
@@ -352,7 +312,7 @@ private fun SwipeCard(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CardContent(personality: Personality) {
+private fun CardContent(personality: Personality, userMbti: String) {
     Box(modifier = Modifier.fillMaxSize()) {
         // MBTI badge top right
         Box(
@@ -365,7 +325,27 @@ private fun CardContent(personality: Personality) {
             Text(personality.mbtiType, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp, letterSpacing = 1.sp)
         }
 
-        // Center: emoji avatar
+        // Compatibility label top left
+        val compatLabel = if (userMbti.length >= 4) MatchEngine.compatibilityLabel(userMbti, personality.mbtiType) else ""
+        if (compatLabel.isNotEmpty()) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(16.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(
+                        if (compatLabel.startsWith("✦"))
+                            Saffron.copy(alpha = 0.85f)
+                        else
+                            Color.White.copy(alpha = 0.15f)
+                    )
+                    .padding(horizontal = 10.dp, vertical = 4.dp)
+            ) {
+                Text(compatLabel, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+            }
+        }
+
+        // Center emoji avatar
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
@@ -378,7 +358,7 @@ private fun CardContent(personality: Personality) {
             Text(personality.avatarEmoji, fontSize = 44.sp)
         }
 
-        // Bottom gradient overlay + info
+        // Bottom info
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -393,7 +373,7 @@ private fun CardContent(personality: Personality) {
         ) {
             Column {
                 Text(personality.name, color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-                Text("${personality.age}", color = Color.White.copy(alpha = 0.8f), fontSize = 16.sp)
+                Text("${personality.age} · ${personality.role}", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     "\"${personality.tagline}\"",
@@ -420,21 +400,36 @@ private fun CardContent(personality: Personality) {
 }
 
 @Composable
-private fun SwipeTopBar(userName: String) {
+private fun SwipeTopBar(userName: String, userMbti: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            "H.E.R",
-            color = Saffron,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 2.sp
-        )
+        Text("H.E.R", color = Saffron, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 2.sp)
         Spacer(modifier = Modifier.weight(1f))
+
+        // User MBTI badge
+        if (userMbti.length >= 4) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Saffron.copy(alpha = 0.15f))
+                    .border(1.dp, Saffron.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 10.dp, vertical = 5.dp)
+            ) {
+                Text(
+                    userMbti.take(4),
+                    color = Saffron,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+            }
+            Spacer(modifier = Modifier.width(10.dp))
+        }
+
         // Profile avatar
         Box(
             modifier = Modifier
@@ -465,8 +460,7 @@ private fun ActionButton(
         modifier = Modifier
             .size(size)
             .clip(CircleShape)
-            .background(color)
-            .then(Modifier),
+            .background(color),
         contentAlignment = Alignment.Center
     ) {
         IconButton(onClick = onClick, modifier = Modifier.size(size)) {

@@ -18,7 +18,7 @@ class FirestoreRepository {
                 "age" to profile.age,
                 "gender" to profile.gender,
                 "interestedIn" to profile.interestedIn,
-                "vibe" to profile.vibe
+                "mbtiType" to profile.mbtiType
             ))
             .await()
     }
@@ -36,7 +36,7 @@ class FirestoreRepository {
             age = (snapshot.getLong("age") ?: 0L).toInt(),
             gender = snapshot.getString("gender") ?: "",
             interestedIn = snapshot.getString("interestedIn") ?: "",
-            vibe = snapshot.getString("vibe") ?: ""
+            mbtiType = snapshot.getString("mbtiType") ?: ""
         )
     }
 

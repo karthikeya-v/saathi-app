@@ -116,7 +116,7 @@ fun HERApp(authViewModel: AuthViewModel) {
                     age = onboardingViewModel.age.value,
                     gender = onboardingViewModel.gender.value,
                     interestedIn = onboardingViewModel.interestedIn.value,
-                    vibe = onboardingViewModel.vibe.value
+                    mbtiType = ""
                 )
             } else loadedProfile
 

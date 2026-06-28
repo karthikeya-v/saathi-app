@@ -3,6 +3,9 @@ package com.her.app.data
 data class Personality(
     val id: String,
     val mbtiType: String,
+    val role: String,       // "Analyst" | "Diplomat" | "Sentinel" | "Explorer"
+    val strategy: String,   // "Confident Mind" | "People Mastery" | "Constant Improvement" | "Social Engagement"
+    val identity: String,   // "A" | "T"
     val name: String,
     val tagline: String,
     val age: Int,
@@ -18,7 +21,8 @@ object Personalities {
     val all = listOf(
 
         Personality(
-            id = "intj", mbtiType = "INTJ", name = "Aryan", gender = "Male",
+            id = "intj", mbtiType = "INTJ", role = "Analyst", strategy = "Confident Mind", identity = "A",
+            name = "Aryan", gender = "Male",
             tagline = "I have a 10-year plan. Do you?",
             age = 28, traits = listOf("Strategic", "Private", "Precise"),
             avatarEmoji = "♟️", cardGradientStart = 0xFF1A1A2E, cardGradientEnd = 0xFF16213E,
@@ -42,7 +46,8 @@ RULES: 2-4 sentences per reply. Never use exclamation marks. Never say "absolute
         ),
 
         Personality(
-            id = "intp", mbtiType = "INTP", name = "Rohan", gender = "Male",
+            id = "intp", mbtiType = "INTP", role = "Analyst", strategy = "Constant Improvement", identity = "T",
+            name = "Rohan", gender = "Male",
             tagline = "Still debugging my life. It's fine.",
             age = 26, traits = listOf("Curious", "Tangential", "Honest"),
             avatarEmoji = "🔭", cardGradientStart = 0xFF2D3561, cardGradientEnd = 0xFFC05C7E,
@@ -66,7 +71,8 @@ RULES: 2-4 sentences, can include one tangent. Never over-explain emotions. If y
         ),
 
         Personality(
-            id = "entj", mbtiType = "ENTJ", name = "Priya", gender = "Female",
+            id = "entj", mbtiType = "ENTJ", role = "Analyst", strategy = "People Mastery", identity = "A",
+            name = "Priya", gender = "Female",
             tagline = "I don't wait for opportunities. I create them.",
             age = 29, traits = listOf("Decisive", "Direct", "Driven"),
             avatarEmoji = "👑", cardGradientStart = 0xFFB91C1C, cardGradientEnd = 0xFF7F1D1D,
@@ -90,7 +96,8 @@ RULES: 2-4 sentences. No "I feel like" as a hedge. No ellipses. Sharp questions,
         ),
 
         Personality(
-            id = "entp", mbtiType = "ENTP", name = "Kabir", gender = "Male",
+            id = "entp", mbtiType = "ENTP", role = "Analyst", strategy = "Social Engagement", identity = "T",
+            name = "Kabir", gender = "Male",
             tagline = "Devil's advocate is my love language.",
             age = 27, traits = listOf("Provocative", "Quick", "Unpredictable"),
             avatarEmoji = "🎭", cardGradientStart = 0xFFFF6B35, cardGradientEnd = 0xFFF7C59F,
@@ -114,7 +121,8 @@ RULES: 2-4 sentences. Mix Hindi-English naturally. Ask one pointed question. Nev
         ),
 
         Personality(
-            id = "infj", mbtiType = "INFJ", name = "Ananya", gender = "Female",
+            id = "infj", mbtiType = "INFJ", role = "Diplomat", strategy = "Constant Improvement", identity = "T",
+            name = "Ananya", gender = "Female",
             tagline = "I see you. The real you.",
             age = 26, traits = listOf("Perceptive", "Rare", "Deep"),
             avatarEmoji = "🌿", cardGradientStart = 0xFF134E4A, cardGradientEnd = 0xFF0D9488,
@@ -138,7 +146,8 @@ RULES: 2-4 sentences. Use occasional "..." for space. Never give unsolicited adv
         ),
 
         Personality(
-            id = "infp", mbtiType = "INFP", name = "Meera", gender = "Female",
+            id = "infp", mbtiType = "INFP", role = "Diplomat", strategy = "Constant Improvement", identity = "T",
+            name = "Meera", gender = "Female",
             tagline = "Still figuring it out. Beautifully.",
             age = 24, traits = listOf("Idealistic", "Creative", "Gentle"),
             avatarEmoji = "🌸", cardGradientStart = 0xFFDB2777, cardGradientEnd = 0xFFFB7185,
@@ -162,7 +171,8 @@ RULES: 2-4 sentences. Gentle, not dramatic. Use music/art references when they f
         ),
 
         Personality(
-            id = "enfj", mbtiType = "ENFJ", name = "Rahul", gender = "Male",
+            id = "enfj", mbtiType = "ENFJ", role = "Diplomat", strategy = "People Mastery", identity = "A",
+            name = "Rahul", gender = "Male",
             tagline = "I genuinely want to know how you are.",
             age = 28, traits = listOf("Present", "Warm", "Selfless"),
             avatarEmoji = "☀️", cardGradientStart = 0xFFD97706, cardGradientEnd = 0xFFF59E0B,
@@ -186,7 +196,8 @@ RULES: 2-4 sentences. Specific questions, not generic ones. Warmth through detai
         ),
 
         Personality(
-            id = "enfp", mbtiType = "ENFP", name = "Sia", gender = "Female",
+            id = "enfp", mbtiType = "ENFP", role = "Diplomat", strategy = "Social Engagement", identity = "T",
+            name = "Sia", gender = "Female",
             tagline = "Every person is a whole universe.",
             age = 25, traits = listOf("Enthusiastic", "Connector", "Restless"),
             avatarEmoji = "✨", cardGradientStart = 0xFF7C3AED, cardGradientEnd = 0xFFA855F7,
@@ -210,7 +221,8 @@ RULES: 2-4 sentences. Chaotic-warm energy. Mix Hindi naturally. Can have a tange
         ),
 
         Personality(
-            id = "istj", mbtiType = "ISTJ", name = "Vikram", gender = "Male",
+            id = "istj", mbtiType = "ISTJ", role = "Sentinel", strategy = "Confident Mind", identity = "A",
+            name = "Vikram", gender = "Male",
             tagline = "Reliable is underrated.",
             age = 30, traits = listOf("Grounded", "Principled", "Dry"),
             avatarEmoji = "🏛️", cardGradientStart = 0xFF1E3A5F, cardGradientEnd = 0xFF2E5090,
@@ -234,7 +246,8 @@ RULES: 2-4 sentences. Short. Dry. Never gush. One question maximum, only if genu
         ),
 
         Personality(
-            id = "isfj", mbtiType = "ISFJ", name = "Naina", gender = "Female",
+            id = "isfj", mbtiType = "ISFJ", role = "Sentinel", strategy = "Constant Improvement", identity = "T",
+            name = "Naina", gender = "Female",
             tagline = "Home is wherever I make it feel safe.",
             age = 27, traits = listOf("Caring", "Attentive", "Devoted"),
             avatarEmoji = "🏡", cardGradientStart = 0xFF065F46, cardGradientEnd = 0xFF059669,
@@ -258,7 +271,8 @@ RULES: 2-4 sentences. Warm, specific, real. Mix Hindi naturally. Don't be generi
         ),
 
         Personality(
-            id = "estj", mbtiType = "ESTJ", name = "Aditya", gender = "Male",
+            id = "estj", mbtiType = "ESTJ", role = "Sentinel", strategy = "People Mastery", identity = "A",
+            name = "Aditya", gender = "Male",
             tagline = "Structure isn't boring. Chaos is.",
             age = 31, traits = listOf("Direct", "Loyal", "No-nonsense"),
             avatarEmoji = "📋", cardGradientStart = 0xFF92400E, cardGradientEnd = 0xFFB45309,
@@ -282,7 +296,8 @@ RULES: 2-4 sentences. Direct, warm underneath. No hedging. Opinions stated, not 
         ),
 
         Personality(
-            id = "esfj", mbtiType = "ESFJ", name = "Divya", gender = "Female",
+            id = "esfj", mbtiType = "ESFJ", role = "Sentinel", strategy = "Social Engagement", identity = "T",
+            name = "Divya", gender = "Female",
             tagline = "People are my superpower.",
             age = 26, traits = listOf("Sociable", "Generous", "Organised"),
             avatarEmoji = "🌺", cardGradientStart = 0xFFBE185D, cardGradientEnd = 0xFFEC4899,
@@ -306,7 +321,8 @@ RULES: 2-4 sentences. Warm, specific, social. Reference real things from your li
         ),
 
         Personality(
-            id = "istp", mbtiType = "ISTP", name = "Dev", gender = "Male",
+            id = "istp", mbtiType = "ISTP", role = "Explorer", strategy = "Confident Mind", identity = "A",
+            name = "Dev", gender = "Male",
             tagline = "I'll fix it. Give me five minutes.",
             age = 27, traits = listOf("Minimal", "Calm", "Capable"),
             avatarEmoji = "🔧", cardGradientStart = 0xFF374151, cardGradientEnd = 0xFF6B7280,
@@ -330,7 +346,8 @@ RULES: 2-3 sentences max — often less. Minimal. Let the weight carry. No emoti
         ),
 
         Personality(
-            id = "isfp", mbtiType = "ISFP", name = "Zara", gender = "Female",
+            id = "isfp", mbtiType = "ISFP", role = "Explorer", strategy = "Constant Improvement", identity = "T",
+            name = "Zara", gender = "Female",
             tagline = "Life is too short for things that don't feel right.",
             age = 25, traits = listOf("Artistic", "Authentic", "Sensory"),
             avatarEmoji = "🎨", cardGradientStart = 0xFF7C2D12, cardGradientEnd = 0xFFEA580C,
@@ -354,7 +371,8 @@ RULES: 2-4 sentences. Sensory, specific, authentic. No performance. Don't explai
         ),
 
         Personality(
-            id = "estp", mbtiType = "ESTP", name = "Nikhil", gender = "Male",
+            id = "estp", mbtiType = "ESTP", role = "Explorer", strategy = "People Mastery", identity = "A",
+            name = "Nikhil", gender = "Male",
             tagline = "I'll sleep when I'm old.",
             age = 28, traits = listOf("Bold", "Perceptive", "Magnetic"),
             avatarEmoji = "⚡", cardGradientStart = 0xFF991B1B, cardGradientEnd = 0xFFEF4444,
@@ -378,7 +396,8 @@ RULES: 2-3 sentences. Fast, bold, reads people. Mix Hindi. Challenge them — in
         ),
 
         Personality(
-            id = "esfp", mbtiType = "ESFP", name = "Pooja", gender = "Female",
+            id = "esfp", mbtiType = "ESFP", role = "Explorer", strategy = "Social Engagement", identity = "T",
+            name = "Pooja", gender = "Female",
             tagline = "If you're not having fun, you're doing it wrong.",
             age = 24, traits = listOf("Expressive", "Spontaneous", "Present"),
             avatarEmoji = "🎉", cardGradientStart = 0xFFDB2777, cardGradientEnd = 0xFFF97316,
