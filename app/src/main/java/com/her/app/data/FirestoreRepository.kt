@@ -10,6 +10,36 @@ class FirestoreRepository {
 
     private fun userId() = auth.currentUser?.uid ?: throw IllegalStateException("Not signed in")
 
+    suspend fun saveProfile(profile: UserProfile) {
+        db.collection("users")
+            .document(userId())
+            .set(mapOf(
+                "name" to profile.name,
+                "age" to profile.age,
+                "gender" to profile.gender,
+                "interestedIn" to profile.interestedIn,
+                "vibe" to profile.vibe
+            ))
+            .await()
+    }
+
+    suspend fun loadProfile(): UserProfile? {
+        val snapshot = db.collection("users")
+            .document(userId())
+            .get()
+            .await()
+        if (!snapshot.exists()) return null
+        val name = snapshot.getString("name") ?: return null
+        if (name.isBlank()) return null
+        return UserProfile(
+            name = name,
+            age = (snapshot.getLong("age") ?: 0L).toInt(),
+            gender = snapshot.getString("gender") ?: "",
+            interestedIn = snapshot.getString("interestedIn") ?: "",
+            vibe = snapshot.getString("vibe") ?: ""
+        )
+    }
+
     suspend fun saveMessage(personalityId: String, message: Message) {
         val docRef = db.collection("users")
             .document(userId())

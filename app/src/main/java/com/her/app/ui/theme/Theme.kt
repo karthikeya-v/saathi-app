@@ -3,17 +3,18 @@ package com.her.app.ui.theme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 
 private val HERColorScheme = lightColorScheme(
     primary = Saffron,
-    onPrimary = androidx.compose.ui.graphics.Color.White,
+    onPrimary = Color.White,
     primaryContainer = WarmSurface,
     onPrimaryContainer = DarkText,
     secondary = DeepRose,
-    onSecondary = androidx.compose.ui.graphics.Color.White,
+    onSecondary = Color.White,
     background = WarmBackground,
     onBackground = DarkText,
-    surface = androidx.compose.ui.graphics.Color.White,
+    surface = Color.White,
     onSurface = DarkText,
     surfaceVariant = WarmSurface,
     onSurfaceVariant = MediumText,

@@ -4,6 +4,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("com.google.gms.google-services")
+    id("com.google.firebase.appdistribution")
 }
 
 val localProps = Properties()
@@ -44,12 +45,24 @@ android {
     }
 
     buildTypes {
+        debug {
+            firebaseAppDistribution {
+                appId = "1:519267545238:android:8badec2cea6223167192b7"
+                releaseNotes = "Latest build — swipe deck, onboarding, personality chats"
+                groups = "testers"
+            }
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            firebaseAppDistribution {
+                appId = "1:519267545238:android:8badec2cea6223167192b7"
+                releaseNotes = "Latest build — swipe deck, onboarding, personality chats"
+                groups = "testers"
+            }
         }
     }
 

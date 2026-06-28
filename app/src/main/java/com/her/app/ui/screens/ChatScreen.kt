@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,14 +28,13 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Snackbar
@@ -60,6 +60,8 @@ import com.her.app.data.Personality
 import com.her.app.ui.components.MessageBubble
 import com.her.app.ui.theme.DarkText
 import com.her.app.ui.theme.Saffron
+import com.her.app.ui.theme.TextMuted
+import com.her.app.ui.theme.TextSecondary
 import com.her.app.ui.theme.WarmBackground
 import com.her.app.viewmodel.ChatViewModel
 
@@ -88,7 +90,7 @@ fun ChatScreen(
             .fillMaxSize()
             .background(WarmBackground)
     ) {
-        // Top bar
+        // White top bar with saffron bottom border
         personality?.let { p ->
             ChatTopBar(
                 personality = p,
@@ -105,8 +107,7 @@ fun ChatScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                reverseLayout = false
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 item { Spacer(modifier = Modifier.height(8.dp)) }
 
@@ -115,9 +116,7 @@ fun ChatScreen(
                 }
 
                 if (isLoading && messages.isNotEmpty()) {
-                    item {
-                        TypingIndicator()
-                    }
+                    item { TypingIndicator() }
                 }
 
                 item { Spacer(modifier = Modifier.height(8.dp)) }
@@ -125,50 +124,33 @@ fun ChatScreen(
 
             // Empty state
             if (messages.isEmpty() && isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         personality?.let {
-                            Text(
-                                text = it.avatarEmoji,
-                                fontSize = 48.sp
-                            )
+                            Text(it.avatarEmoji, fontSize = 48.sp)
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                text = "${it.name} is getting ready…",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                "${it.name} is getting ready…",
+                                color = TextSecondary,
+                                fontSize = 14.sp
                             )
                         }
                         Spacer(modifier = Modifier.height(12.dp))
-                        CircularProgressIndicator(
-                            color = Saffron,
-                            modifier = Modifier.size(24.dp)
-                        )
+                        CircularProgressIndicator(color = Saffron, modifier = Modifier.size(24.dp))
                     }
                 }
             }
         }
 
         // Error snackbar
-        AnimatedVisibility(
-            visible = errorMessage != null,
-            enter = fadeIn(),
-            exit = fadeOut()
-        ) {
+        AnimatedVisibility(visible = errorMessage != null, enter = fadeIn(), exit = fadeOut()) {
             errorMessage?.let { err ->
                 Snackbar(
                     modifier = Modifier.padding(16.dp),
                     action = {
-                        TextButton(onClick = { viewModel.clearError() }) {
-                            Text("Dismiss")
-                        }
+                        TextButton(onClick = { viewModel.clearError() }) { Text("Dismiss") }
                     }
-                ) {
-                    Text(err)
-                }
+                ) { Text(err) }
             }
         }
 
@@ -194,71 +176,63 @@ private fun ChatTopBar(
     onBack: () -> Unit,
     onSwitch: () -> Unit
 ) {
-    val gradientBrush = Brush.linearGradient(
-        colors = listOf(
-            Color(personality.cardGradientStart),
-            Color(personality.cardGradientEnd)
-        )
-    )
-
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(gradientBrush)
+            .background(Color.White)
             .statusBarsPadding()
-            .padding(vertical = 8.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 4.dp),
+                .padding(horizontal = 4.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color.White
-                )
+                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = DarkText)
             }
 
+            // Gradient emoji avatar
             Box(
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(40.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.25f)),
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                Color(personality.cardGradientStart),
+                                Color(personality.cardGradientEnd)
+                            )
+                        )
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = personality.avatarEmoji,
-                    fontSize = 22.sp
-                )
+                Text(personality.avatarEmoji, fontSize = 18.sp)
             }
 
             Spacer(modifier = Modifier.width(10.dp))
 
             Column(modifier = Modifier.weight(1f)) {
+                Text(personality.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = DarkText)
                 Text(
-                    text = personality.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-                Text(
-                    text = if (isLoading) "typing…" else "${personality.city}, ${personality.age}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.85f)
+                    if (isLoading) "typing…" else "${personality.mbtiType} · ${personality.age}",
+                    fontSize = 12.sp,
+                    color = if (isLoading) Saffron else TextSecondary
                 )
             }
 
             IconButton(onClick = onSwitch) {
-                Icon(
-                    imageVector = Icons.Default.SwapHoriz,
-                    contentDescription = "Switch personality",
-                    tint = Color.White
-                )
+                Icon(Icons.Default.Refresh, contentDescription = "Switch", tint = TextMuted)
             }
         }
+
+        // Saffron bottom border
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.5.dp)
+                .background(Saffron.copy(alpha = 0.3f))
+        )
     }
 }
 
@@ -311,16 +285,11 @@ private fun ChatInputBar(
             value = value,
             onValueChange = onValueChange,
             modifier = Modifier.weight(1f),
-            placeholder = {
-                Text(
-                    "Type a message…",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            },
+            placeholder = { Text("Type a message…", color = TextMuted) },
             shape = RoundedCornerShape(24.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = Saffron,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                unfocusedBorderColor = Color(0xFFE8E0D8),
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White
             ),
@@ -338,23 +307,11 @@ private fun ChatInputBar(
                 .background(if (value.isNotBlank() && !isLoading) Saffron else Saffron.copy(alpha = 0.4f)),
             contentAlignment = Alignment.Center
         ) {
-            IconButton(
-                onClick = onSend,
-                enabled = value.isNotBlank() && !isLoading
-            ) {
+            IconButton(onClick = onSend, enabled = value.isNotBlank() && !isLoading) {
                 if (isLoading) {
-                    CircularProgressIndicator(
-                        color = Color.White,
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp
-                    )
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 } else {
-                    Icon(
-                        imageVector = Icons.Default.Send,
-                        contentDescription = "Send",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    Icon(Icons.Default.Send, contentDescription = "Send", tint = Color.White, modifier = Modifier.size(20.dp))
                 }
             }
         }

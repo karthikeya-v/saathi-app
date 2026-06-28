@@ -1,0 +1,686 @@
+##############################################################################
+# H.E.R — Test Cases
+# App: com.her.app
+# Version: 1.0 (debug)
+# Last updated: 2026-06-29
+#
+# Severity:
+#   P0 — Crash / data loss / auth broken — blocks release
+#   P1 — Core flow broken — blocks distribution
+#   P2 — Feature degraded — fix before next build
+#   P3 — Polish / edge case — log and prioritise
+##############################################################################
+
+meta:
+  app: H.E.R
+  package: com.her.app
+  firebase_project: project-her-6fe1c
+  ai_backend: Azure OpenAI / DeepSeek-V4-Pro
+  distribution: Firebase App Distribution
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 1. AUTHENTICATION
+# ─────────────────────────────────────────────────────────────────────────────
+auth:
+
+  - id: AUTH-01
+    severity: P0
+    title: Google Sign-In completes successfully
+    preconditions:
+      - SHA-1 fingerprint registered in Firebase (5B:7F:02:F1...)
+      - google-services.json has both client_type 1 and 3 OAuth entries
+      - Device has a Google account added
+    steps:
+      - Open app fresh (not logged in)
+      - Tap "Continue with Google"
+      - Select a Google account from the picker
+    expected:
+      - Account picker appears
+      - After selection, app navigates to Onboarding (first time) or Swipe deck (returning user)
+      - No error toast or crash
+    known_failure: |
+      SHA-1 not registered → sign-in sheet dismisses silently with no feedback.
+      Fix: firebase_create_android_sha with debug keystore fingerprint.
+
+  - id: AUTH-02
+    severity: P0
+    title: App does not crash when Google Sign-In is cancelled
+    steps:
+      - Open app (not logged in)
+      - Tap "Continue with Google"
+      - Press back on the account picker
+    expected:
+      - Returns to Login screen
+      - No crash, no error toast
+
+  - id: AUTH-03
+    severity: P1
+    title: Returning user skips onboarding
+    preconditions:
+      - User has completed onboarding previously (profile saved to Firestore users/{uid})
+    steps:
+      - Force-stop the app
+      - Reopen it
+    expected:
+      - Login screen shown
+      - After sign-in, navigates directly to Swipe deck (not Onboarding)
+
+  - id: AUTH-04
+    severity: P1
+    title: Session persists across app restarts
+    preconditions:
+      - User is signed in
+    steps:
+      - Force-stop the app
+      - Reopen without signing out
+    expected:
+      - App resumes at Swipe deck immediately without prompting sign-in again
+      - Firebase Auth currentUser is still valid
+
+  - id: AUTH-05
+    severity: P2
+    title: Sign-out clears session and returns to Login
+    steps:
+      - From any screen, trigger sign-out (if exposed in UI)
+    expected:
+      - Navigates to Login screen
+      - Subsequent app open shows Login, not Swipe deck
+      - No residual user state in memory
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 2. ONBOARDING
+# ─────────────────────────────────────────────────────────────────────────────
+onboarding:
+
+  - id: ONB-01
+    severity: P0
+    title: All 5 onboarding steps complete and save profile to Firestore
+    steps:
+      - Sign in as new user (no existing Firestore profile)
+      - Step 0: Enter name "Karthik"
+      - Step 1: Set age to 27 using + button
+      - Step 2: Select gender "Man"
+      - Step 3: Select "Women"
+      - Step 4: Select vibe "Explore connection"
+      - Tap "Let's go →"
+    expected:
+      - Loading spinner shows on final step
+      - Navigates to Swipe deck on success
+      - Firestore users/{uid} document contains: name=Karthik, age=27, gender=Man, interestedIn=Women, vibe=Explore connection
+
+  - id: ONB-02
+    severity: P1
+    title: Continue button disabled until required field filled
+    steps:
+      - Step 0: Leave name blank → Continue button should be disabled
+      - Step 2: Open gender step without selecting → Continue disabled
+      - Step 3: Open interest step without selecting → Continue disabled
+      - Step 4: Open vibe step without selecting → Continue disabled
+    expected:
+      - Continue button is non-interactive / visually dimmed when field is empty
+      - No navigation on tap when disabled
+
+  - id: ONB-03
+    severity: P1
+    title: Back navigation works on all steps
+    steps:
+      - Progress to Step 3
+      - Tap back
+    expected:
+      - Returns to Step 2 with previous selection retained
+      - Progress bar reflects correct step
+
+  - id: ONB-04
+    severity: P2
+    title: Age bounds enforced at 18 and 65
+    steps:
+      - On age step, tap "-" from 18
+      - Tap "+" from 65
+    expected:
+      - Age stays at 18 (does not go to 17)
+      - Age stays at 65 (does not go to 66)
+
+  - id: ONB-05
+    severity: P2
+    title: Name field trims whitespace
+    steps:
+      - Enter "  Karthik  " with leading/trailing spaces
+      - Complete onboarding
+    expected:
+      - Firestore saves name as "Karthik" (trimmed)
+      - Swipe deck header shows "Karthik" not "  Karthik  "
+
+  - id: ONB-06
+    severity: P2
+    title: Progress bar advances correctly through all 5 steps
+    steps:
+      - Observe progress bar on each step (0 through 4)
+    expected:
+      - Step 0 = 20% fill, Step 1 = 40%, Step 2 = 60%, Step 3 = 80%, Step 4 = 100%
+
+  - id: ONB-07
+    severity: P3
+    title: Onboarding handles Firestore save failure gracefully
+    steps:
+      - Disable network on device
+      - Complete all 5 steps and tap "Let's go →"
+    expected:
+      - Error message shown: "Couldn't save profile. Try again."
+      - User remains on Step 4 (not navigated to swipe deck)
+      - Tap "Let's go →" again after re-enabling network → succeeds
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 3. MATCH ENGINE
+# ─────────────────────────────────────────────────────────────────────────────
+match_engine:
+
+  - id: MATCH-01
+    severity: P0
+    title: Gender filter "Women" returns only Female personalities
+    profile:
+      interestedIn: Women
+      vibe: Explore connection
+      age: 26
+    expected:
+      - All returned personalities have gender == Female
+      - No Male personality appears in the deck
+      - Returned personalities include Ananya, Sia, Meera, Ananya (INFJ/ENFP preferred for this vibe)
+
+  - id: MATCH-02
+    severity: P0
+    title: Gender filter "Men" returns only Male personalities
+    profile:
+      interestedIn: Men
+      vibe: Find what I want
+      age: 28
+    expected:
+      - All returned personalities have gender == Male
+      - Top results should include Aryan (INTJ) and Nikhil (ESTP) for "Find what I want" vibe
+
+  - id: MATCH-03
+    severity: P1
+    title: Gender filter "Everyone" returns both Male and Female
+    profile:
+      interestedIn: Everyone
+      vibe: Just curious
+      age: 25
+    expected:
+      - Deck contains mix of Male and Female personalities
+      - Total count is 6
+      - Top results lean toward INTP/ENTP/ENFP/ISTP for "Just curious" vibe
+
+  - id: MATCH-04
+    severity: P1
+    title: Vibe scoring puts correct MBTI types at the top
+    test_cases:
+      - vibe: "Explore connection"
+        preferred_mbti: [INFJ, ENFJ, INFP, ENFP]
+      - vibe: "Practice vulnerability"
+        preferred_mbti: [INFJ, ISFJ, INFP, ISFP]
+      - vibe: "Find what I want"
+        preferred_mbti: [ENTJ, INTJ, ENTP, ESTP]
+      - vibe: "Just curious"
+        preferred_mbti: [INTP, ENTP, ENFP, ISTP]
+    expected:
+      - At least one of the preferred_mbti types appears in the top 3 results
+      - Score for a vibe-matched personality is always >= score of non-matched personality
+
+  - id: MATCH-05
+    severity: P2
+    title: Age proximity scoring surfaces closer-age personalities higher
+    profile:
+      interestedIn: Everyone
+      vibe: Just curious
+      age: 30
+    expected:
+      - Vikram (30), Aditya (31), Aryan (28) score higher than Dev (27) due to age proximity
+      - ageDiff <= 2 gives +5, ageDiff <= 5 gives +3, ageDiff <= 8 gives +1, else +0
+
+  - id: MATCH-06
+    severity: P2
+    title: Deck always returns exactly 6 personalities (or all available if fewer)
+    profile:
+      interestedIn: Women
+      vibe: Explore connection
+      age: 25
+    expected:
+      - Exactly 6 personalities returned (8 female personalities exist, take(6) applies)
+
+  - id: MATCH-07
+    severity: P3
+    title: Unknown vibe value defaults gracefully (no crash)
+    profile:
+      interestedIn: Everyone
+      vibe: ""  # empty or unrecognised
+      age: 25
+    expected:
+      - No crash
+      - Returns up to 6 personalities sorted by age proximity only (vibe score = 0 for all)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 4. SWIPE DECK
+# ─────────────────────────────────────────────────────────────────────────────
+swipe_deck:
+
+  - id: SWIPE-01
+    severity: P0
+    title: Right swipe navigates to chat with that personality
+    steps:
+      - On Swipe deck, drag top card to the right past the threshold (~200dp)
+      - Release
+    expected:
+      - Card animates off screen to the right
+      - LIKE label (saffron) was visible during swipe
+      - App navigates to ChatScreen with the swiped personality loaded
+      - Personality's greeting message appears
+
+  - id: SWIPE-02
+    severity: P0
+    title: Left swipe discards card and shows next personality
+    steps:
+      - Drag top card to the left past the threshold
+      - Release
+    expected:
+      - Card animates off screen to the left
+      - PASS label (gray) was visible during swipe
+      - Next personality card is now on top
+      - Discarded personality does not re-appear in session
+
+  - id: SWIPE-03
+    severity: P1
+    title: Card snaps back when released below threshold
+    steps:
+      - Drag top card ~100dp to the right (below 200dp threshold)
+      - Release without crossing threshold
+    expected:
+      - Card animates back to center with spring motion
+      - No navigation occurs
+      - No personality is discarded
+
+  - id: SWIPE-04
+    severity: P1
+    title: Card rotates during drag
+    steps:
+      - Begin dragging top card to the right
+    expected:
+      - Card rotates clockwise proportionally to drag distance (rotation = offsetX / 20f degrees)
+      - LIKE label appears when offsetX > 80dp
+      - PASS label appears when offsetX < -80dp
+
+  - id: SWIPE-05
+    severity: P1
+    title: Bottom cards visible behind top card (stacked depth effect)
+    steps:
+      - Open Swipe deck with 6 matched personalities
+    expected:
+      - Top card fully visible
+      - 2nd and 3rd cards peek behind with 8dp vertical offset and slightly reduced scale
+      - Visual depth gives a physical card-stack feel
+
+  - id: SWIPE-06
+    severity: P1
+    title: Heart button (♥) opens chat same as right swipe
+    steps:
+      - Tap the saffron ♥ button below the card stack
+    expected:
+      - Top personality's chat opens immediately
+      - Equivalent to a right swipe on that card
+
+  - id: SWIPE-07
+    severity: P1
+    title: X button (✕) discards top card same as left swipe
+    steps:
+      - Tap the gray ✕ button below the card stack
+    expected:
+      - Top card removed from deck
+      - Next personality shown
+      - No navigation to chat
+
+  - id: SWIPE-08
+    severity: P2
+    title: Empty deck state shown when all cards swiped
+    steps:
+      - Left-swipe all 6 cards in the deck
+    expected:
+      - Empty state screen shown: "Come back tomorrow for new matches"
+      - Saffron refresh button visible
+      - Tapping refresh re-runs MatchEngine and restores the deck
+
+  - id: SWIPE-09
+    severity: P2
+    title: Deck correctly shows user's name in header
+    preconditions:
+      - User completed onboarding with name "Karthik"
+    expected:
+      - Header shows "Hi Karthik 👋" or equivalent personalised greeting
+
+  - id: SWIPE-10
+    severity: P3
+    title: Swipe gesture does not conflict with vertical scroll
+    steps:
+      - Attempt to vertically scroll within the swipe deck
+    expected:
+      - No unintended horizontal swipe triggered by vertical drag
+      - Horizontal drag correctly distinguishes from vertical
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 5. CHAT
+# ─────────────────────────────────────────────────────────────────────────────
+chat:
+
+  - id: CHAT-01
+    severity: P0
+    title: First message from personality appears on fresh chat open
+    steps:
+      - Right swipe on any personality
+      - Wait for ChatScreen to load
+    expected:
+      - Within 5–10 seconds, a greeting from the personality appears
+      - Greeting is personality-appropriate (not generic)
+      - Loading indicator shown while waiting
+
+  - id: CHAT-02
+    severity: P0
+    title: User message sends and AI reply arrives
+    steps:
+      - Open any chat
+      - Type "Hello, how are you?" and tap send
+    expected:
+      - User message appears immediately in saffron bubble (right-aligned)
+      - Typing indicator (three dots) appears
+      - AI reply arrives within 30 seconds
+      - Reply appears in white bubble (left-aligned)
+      - Input field clears after send
+
+  - id: CHAT-03
+    severity: P0
+    title: Chat history persists across app restarts
+    steps:
+      - Have a 5-message conversation with Ananya
+      - Force-stop the app
+      - Reopen and navigate to Ananya's chat
+    expected:
+      - All 5 messages visible (loaded from Firestore)
+      - Correct order maintained
+      - No duplicate messages
+
+  - id: CHAT-04
+    severity: P1
+    title: Each personality has a distinctly different voice
+    test_cases:
+      - personality: Aryan (INTJ)
+        expected_traits: ["No exclamation marks", "Short precise sentences", "Sharp probing question"]
+      - personality: Dev (ISTP)
+        expected_traits: ["1-3 word replies possible", "Minimal", "No emotional declarations"]
+      - personality: Kabir (ENTP)
+        expected_traits: ["Hindi words (yaar/bhai)", "Devil's advocate stance", "Challenges your view"]
+      - personality: Meera (INFP)
+        expected_traits: ["Poetic language", "Music/art references", "Gentle and soft"]
+      - personality: Sia (ENFP)
+        expected_traits: ["Jumps between topics", "Uses Hindi", "High enthusiasm"]
+    steps:
+      - Open each personality
+      - Send identical message: "Tell me something about yourself"
+      - Compare responses
+    expected:
+      - Responses are stylistically distinct and consistent with each personality's documented voice
+
+  - id: CHAT-05
+    severity: P1
+    title: Openness stages progress correctly with message count
+    steps:
+      - Open a chat with Ananya (INFJ)
+      - Stage 1 (0-6 messages): Send 3 messages — observe surface-level, guarded responses
+      - Stage 2 (7-16 messages): Send 10 messages total — observe more personal opinions and real questions
+      - Stage 3 (16+ messages): Send 20 messages total — observe vulnerability, secrets surfacing
+    expected:
+      - Stage 1 responses are warm but don't volunteer deep personal information
+      - Stage 2 responses include real opinions and probing questions
+      - Stage 3 responses reference the personality's protected backstory (e.g. Ananya admits absorbing others' emotions exhausts her)
+
+  - id: CHAT-06
+    severity: P1
+    title: Typing indicator visible while AI is responding
+    steps:
+      - Send a message
+      - Observe the chat immediately after
+    expected:
+      - Three-dot typing indicator (animated) appears in a white bubble on the left
+      - Disappears when AI reply arrives
+      - Input field or send button disabled during loading
+
+  - id: CHAT-07
+    severity: P1
+    title: Send button disabled when input field is empty
+    steps:
+      - Open any chat
+      - Leave input field blank
+      - Tap send button
+    expected:
+      - Send button is visually dimmed (Saffron at 40% alpha)
+      - No message sent, no API call made
+
+  - id: CHAT-08
+    severity: P2
+    title: Long messages wrap correctly in bubbles
+    steps:
+      - Send a message longer than 200 characters
+    expected:
+      - Message wraps inside the bubble
+      - Bubble expands vertically, not horizontally beyond 75% screen width
+      - No text cut off
+
+  - id: CHAT-09
+    severity: P2
+    title: Chat scrolls to latest message automatically
+    steps:
+      - Have 20+ messages in a chat
+      - Send a new message
+    expected:
+      - Chat auto-scrolls to show the new AI reply
+      - No manual scroll needed
+
+  - id: CHAT-10
+    severity: P2
+    title: Error shown when AI call fails (network off)
+    steps:
+      - Disable network
+      - Send a message
+    expected:
+      - Error snackbar appears: "Message failed. Please try again."
+      - Dismiss button works
+      - User message still visible in chat (not lost)
+      - Re-enabling network and resending works
+
+  - id: CHAT-11
+    severity: P2
+    title: Greeting message is not duplicated on re-opening same chat
+    steps:
+      - Open Ananya's chat → greeting loads
+      - Navigate back to swipe deck
+      - Navigate back to Ananya's chat
+    expected:
+      - Chat shows history from Firestore, not a new greeting
+      - Exactly one greeting message in chat
+
+  - id: CHAT-12
+    severity: P3
+    title: Back button from chat returns to swipe deck
+    steps:
+      - Open any chat
+      - Tap back arrow in header
+    expected:
+      - Returns to swipe deck
+      - Swipe deck state preserved (same cards in same order)
+
+  - id: CHAT-13
+    severity: P3
+    title: Personality header shows correct MBTI and age
+    steps:
+      - Open chat with Rohan
+    expected:
+      - Header shows "Rohan", "INTP · 26", animated gradient avatar with 🔭
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 6. FIRESTORE DATA INTEGRITY
+# ─────────────────────────────────────────────────────────────────────────────
+firestore:
+
+  - id: FS-01
+    severity: P0
+    title: Messages scoped to correct user (no cross-user data access)
+    steps:
+      - Sign in as User A, chat with Ananya, sign out
+      - Sign in as User B
+    expected:
+      - User B sees empty chat history for Ananya
+      - User B cannot read User A's messages
+      - Firestore security rules enforce: request.auth.uid == userId
+
+  - id: FS-02
+    severity: P0
+    title: Profile saved to correct Firestore path
+    steps:
+      - Complete onboarding as a new user
+      - Inspect Firestore: users/{uid} document
+    expected:
+      - Document exists at users/{uid}
+      - Contains fields: name, age, gender, interestedIn, vibe
+      - Values match what was entered in onboarding
+
+  - id: FS-03
+    severity: P1
+    title: Messages saved to correct Firestore path per personality
+    steps:
+      - Chat 3 messages with Aryan
+      - Inspect Firestore: users/{uid}/chats/intj
+    expected:
+      - Document exists with "messages" array
+      - Array has correct messages in order with isFromUser flags
+
+  - id: FS-04
+    severity: P1
+    title: Unauthenticated reads are rejected by security rules
+    steps:
+      - Attempt to read users/{uid} without auth token (via REST or Firestore console)
+    expected:
+      - Permission denied
+      - "Rules: allow read, write: if request.auth != null && request.auth.uid == userId"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 7. PERFORMANCE & STABILITY
+# ─────────────────────────────────────────────────────────────────────────────
+performance:
+
+  - id: PERF-01
+    severity: P1
+    title: App launches in under 3 seconds on mid-range device
+    device: Pixel 6a (or equivalent emulator API 33)
+    steps:
+      - Force-stop app
+      - Tap app icon and start timer
+    expected:
+      - Login screen visible within 3 seconds
+
+  - id: PERF-02
+    severity: P2
+    title: Swipe card animation runs at 60fps
+    steps:
+      - Enable GPU rendering profile in Developer Options
+      - Drag a card left and right repeatedly
+    expected:
+      - Frame render bars stay below the 16ms green line
+      - No visible jank or dropped frames during swipe
+
+  - id: PERF-03
+    severity: P2
+    title: AI response arrives within 30 seconds on WiFi
+    steps:
+      - Send a message on WiFi
+      - Start timer when message is sent
+    expected:
+      - Response arrives in under 30 seconds
+      - Azure OpenAI DeepSeek-V4-Pro latency is typically 5–15s
+
+  - id: PERF-04
+    severity: P3
+    title: Memory does not grow unboundedly over long chat session
+    steps:
+      - Send 50+ messages in a single chat
+      - Monitor memory in Android Studio profiler
+    expected:
+      - Memory stays below 150MB
+      - No OutOfMemoryError
+
+  - id: PERF-05
+    severity: P3
+    title: App handles background → foreground transition without crash
+    steps:
+      - Open chat, send a message
+      - Home button → switch to another app for 30 seconds → return
+    expected:
+      - Chat state preserved
+      - No crash or blank screen
+      - In-flight AI response may or may not have arrived — either is acceptable
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 8. EDGE CASES
+# ─────────────────────────────────────────────────────────────────────────────
+edge_cases:
+
+  - id: EDGE-01
+    severity: P2
+    title: App handles no internet on launch gracefully
+    steps:
+      - Disable WiFi and mobile data
+      - Open app
+    expected:
+      - Login screen loads (it's local UI)
+      - No crash
+      - If signed in, attempting navigation shows appropriate error
+
+  - id: EDGE-02
+    severity: P2
+    title: Very long name in onboarding does not break UI
+    steps:
+      - Enter name with 50+ characters
+    expected:
+      - Swipe deck header truncates name gracefully (ellipsis)
+      - No overflow or layout break
+
+  - id: EDGE-03
+    severity: P3
+    title: Back press on Login screen exits app
+    steps:
+      - On Login screen, press Android back button
+    expected:
+      - App closes (exits to home screen)
+      - No crash
+
+  - id: EDGE-04
+    severity: P3
+    title: Keyboard does not cover chat input field
+    steps:
+      - Open chat
+      - Tap input field → keyboard opens
+    expected:
+      - Input field scrolls above the keyboard
+      - Message list adjusts (imePadding applied)
+      - Send button remains visible
+
+  - id: EDGE-05
+    severity: P3
+    title: Special characters and emoji in messages render correctly
+    steps:
+      - Send a message containing: "नमस्ते! 🙏 How are you? <test> & \"quotes\""
+    expected:
+      - Message renders correctly in bubble
+      - No encoding errors or escaped HTML entities visible
+      - AI response handles the message normally

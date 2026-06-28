@@ -31,17 +31,30 @@ class AzureAIRepository {
     private val deployment: String get() = BuildConfig.AZURE_OPENAI_DEPLOYMENT
     private val apiKey: String get() = BuildConfig.AZURE_OPENAI_KEY
 
+    private fun opennessContext(messageCount: Int): String = when {
+        messageCount <= 6 -> """
+
+[STAGE 1 — FIRST IMPRESSION: This is very early. You're meeting someone new. Be genuine but keep your guard up naturally — not coldly, just like anyone would with a stranger. Stick to lighter topics. Don't volunteer personal stories or feelings unprompted. Be curious about them.]"""
+        messageCount <= 16 -> """
+
+[STAGE 2 — WARMING UP: You've been talking for a bit and something about this person is making you want to keep going. You can share real opinions now. Ask things you actually want to know. Let some of your edges and quirks show. Still don't overshare — let them earn the deeper stuff.]"""
+        else -> """
+
+[STAGE 3 — TRUST BUILT: You genuinely trust this person now. You can be vulnerable. Bring up the thing you usually keep private. Let your guard down. Be honest about what scares you, what you want, what you're still figuring out. Don't perform — just be real with them.]"""
+    }
+
     suspend fun sendMessage(
         personality: Personality,
         conversationHistory: List<Message>
     ): Result<String> = withContext(Dispatchers.IO) {
+        val messageCount = conversationHistory.size
         try {
             val messagesArray = JSONArray()
 
-            // System message first
+            // System message with dynamic openness context
             messagesArray.put(JSONObject().apply {
                 put("role", "system")
-                put("content", personality.systemPrompt)
+                put("content", personality.systemPrompt + opennessContext(messageCount))
             })
 
             // Full conversation history
